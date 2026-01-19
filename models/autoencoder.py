@@ -24,3 +24,6 @@ class Autoencoder(nn.Module):
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         return self.decoder(z)
+
+
+
