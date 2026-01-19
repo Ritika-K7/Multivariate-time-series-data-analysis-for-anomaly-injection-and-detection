@@ -27,6 +27,8 @@ def train(model, train_data, epochs=30, batch_size=64, lr=1e-3):
     loader = DataLoader(TensorDataset(train_data), batch_size=batch_size, shuffle=True)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    
+    history = []
 
     for epoch in range(epochs):
         total_loss = 0
@@ -42,7 +44,11 @@ def train(model, train_data, epochs=30, batch_size=64, lr=1e-3):
             
             total_loss += loss.item()
         
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(loader):.4f}")
+        avg_loss = total_loss / len(loader)
+        history.append(avg_loss)
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+    
+    return history
 
 
 def compute_error(model, windows):
@@ -84,7 +90,7 @@ if __name__ == "__main__":
     # Train model
     input_dim = WINDOW_SIZE * NUM_SENSORS
     model = Autoencoder(input_dim)
-    train(model, train_data, epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE)
+    training_history = train(model, train_data, epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE)
     
     # Compute training errors and threshold
     train_errors = compute_error(model, train_data)
@@ -114,5 +120,18 @@ if __name__ == "__main__":
     threshold_path = results_dir / "thresholds.json"
     with open(threshold_path, 'w') as f:
         json.dump({'threshold': float(threshold)}, f)
+    
+    # Save training errors
+    train_errors_path = results_dir / "training_reconstruction_errors.npy"
+    np.save(train_errors_path, train_errors)
+    
+    # Save training history
+    history_path = results_dir / "training_history.json"
+    with open(history_path, 'w') as f:
+        json.dump({
+            'epochs': EPOCHS,
+            'training_loss_per_epoch': [float(loss) for loss in training_history],
+            'final_loss': float(training_history[-1])
+        }, f, indent=2)
     
     print(f"\n Saved to: {results_dir}")
